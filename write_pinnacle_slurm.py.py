@@ -1,33 +1,54 @@
-#! /usr/bin/env python3
+#! /usr/bin/bash
 
-# This script generates a PBS file for the AHPCC Razor cluster
+# This script generates a SLURM file for the AHPCC Pinnacle cluster
 
 # define some variables
-name = 'testpinnacle'
-queue = 'med16core'
+name = 'Trinity-assembly'
+queue = 'comp06'
 prefix = 'testpinnacle.$PBS_JOBID'
-nodes = 'nodes=1' # number of nodes
-proc = 'ppn=1' # number of processors
-wall = 3 # this is in hours
+nodes = '--nodes=1' # number of nodes
+proc = '--ntasks-per-node=32' # number of processors
+wall = 6 # this is in hours
 
 # This section prints the header/required info for the PBS script
-print('#PBS -N', name) # job name
-print('#PBS -q', queue) # which queue to use
-print('#PBS -j oe') # join the STDOUT and STDERR into a single file
-print('#PBS -o', prefix) # set the name of the job output file
-print('#PBS -l', nodes + ':' + proc) # how many resources to ask for (nodes = num nodes, ppn = num processors)
-print('#PBS -l walltime=' + str(wall) + ':00:00') # set the walltime (default to 1 hr)
+print('#SBATCH -J', name) # job name
+print('#SBATCH --partition', queue) # queue name
+print('#SBATCH -o') # set the name of the job output file
+print('#SBATCH -e')
+print('#BATCHS --mail-type=ALL') 
+print('#SBATCH --mail-user=yktang@uark.edu') 
+print('#SBATCH', nodes) # how many resources to ask for (nodes = num nodes, ppn = num processors)
+print('#SBATCH' proc)
+print('#SBATCH --time'+ str(wall) + ':00:00') # set the walltime (default to 1 hr)
 print()
 
-# cd into working directory
-print('cd $PBS_O_WORKDIR')
+print('export OMP_NUM_THREADS=32')
 print()
 
 # load the necessary modules
-print('# load modules')
-print('module purge')
-print('module load gcc/7.2.1')
+print('module load samtools')
+print('module load jellyfish')
+print('module load bowtie2')
+print('module load salmon/0.8.2')
+print('module load java')
 print()
 
-# commands for this job
-print('# insert commands here')
+# cd into the directory where you're submitting this script from
+print('cd $SLURM_SUBMIT_DIR')
+print()
+
+# copy files from storage to scratch
+print ('rsync -av RNA-R*.fastq.gz /scratch/$SLURM_JOB_ID')
+print()
+
+# cd onto the scratch disk to run the job
+print('cd /scratch/$SLURM_JOB_ID/')
+print()
+
+# run the Trinity assembly
+print('/share/apps/bioinformatics/trinity/trinityrnaseq-v2.11.0/Trinity --seqType fq --left RNA-R1.fastq.gz --right RNA-R2.fastq.gz --CPU 48 --max_memory 250G --trimmomatic --no_normalize_reads --full_cleanup --output trinity_Run2')
+print()
+
+# copy output files back to storage
+print('rsync -av trinity_Run2 $SLURM_SUBMIT_DIR')
+print()
