@@ -32,8 +32,14 @@ with open(args.gff, 'r') as gff_in:
         start   = int(line[3]) - 1
         end     = int(line[4]) + 1
         feature = line[8]
-        print(feature)
+        strand = line[6]
+        if strand == '-' :
+            print(feature)
+            print(genome.seq[start:end].reverse_complement())
+        else :
+            print(feature)
+            print(genome.seq[start:end])
 
         # extract the sequence
-        print(genome.seq[start:end])
+        #print(genome.seq[start:end])
 
